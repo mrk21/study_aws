@@ -1,0 +1,12 @@
+desc 'Creates EC2 instance'
+task :create_ec2 do
+  image_id = 'ami-0d13700c' # Amazon Linux
+  sh <<-SH
+    aws ec2 run-instances \
+      --image-id #{image_id} \
+      --count 1 \
+      --instance-type t1.micro \
+      --key-name default \
+      --security-groups default
+  SH
+end
