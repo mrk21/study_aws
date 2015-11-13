@@ -1,0 +1,25 @@
+require 'aws-sdk'
+require 'pp'
+
+Aws.config.update(region: 'ap-northeast-1')
+ec2 = Aws::EC2::Client.new
+
+desc 'Creates EC2 instance'
+task :create do
+  ec2.run_instances(
+    image_id: 'ami-0d13700c', # Amazon Linux
+    min_count: 1,
+    max_count: 1,
+    security_groups: ['default'],
+    instance_type: 't1.micro',
+    disable_api_termination: false,
+  )
+end
+
+desc 'Terminates EC2 instance'
+task :terminate do
+  instance_id = ec2.describe_instances.reservations.first.instances.first.instance_id
+  ec2.terminate_instances(
+    instance_ids: [instance_id]
+  )
+end
