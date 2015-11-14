@@ -1,25 +1,74 @@
+require 'erb'
 require 'aws-sdk'
 require 'pp'
 
-Aws.config.update(region: 'ap-northeast-1')
-ec2 = Aws::EC2::Client.new
+namespace :sdk do
+  Aws.config.update(region: 'ap-northeast-1')
+  ec2 = Aws::EC2::Client.new
+  
+  desc 'Creates EC2 instance'
+  task :create do
+    ec2.run_instances(
+      image_id: 'ami-0d13700c', # Amazon Linux
+      min_count: 1,
+      max_count: 1,
+      security_groups: ['default'],
+      instance_type: 't1.micro',
+      disable_api_termination: false,
+    )
+  end
+  
+  desc 'Terminates EC2 instance'
+  task :terminate do
+    instance_id = ec2.describe_instances.reservations.first.instances.first.instance_id
+    ec2.terminate_instances(
+      instance_ids: [instance_id]
+    )
+  end
+end
+
+def aws(cmd, bind = binding)
+  puts cmd = ERB.new(cmd.gsub(/\s+/, ' ').strip).result(bind)
+  puts json = %x(#{cmd})
+  json = JSON.parse json rescue ''
+end
 
 desc 'Creates EC2 instance'
 task :create do
-  ec2.run_instances(
-    image_id: 'ami-0d13700c', # Amazon Linux
-    min_count: 1,
-    max_count: 1,
-    security_groups: ['default'],
-    instance_type: 't1.micro',
-    disable_api_termination: false,
-  )
+  # Creates instance
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.37-39
+  result = aws <<-SH
+    aws ec2 run-instances
+      --image-id            ami-0d13700c <%# Amazon Linux %>
+      --instance-type       t1.micro
+      --security-group-ids  default
+      --key-name            default
+  SH
+  
+  # Attaches tags to created instance
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.37-39
+  result = aws <<-SH, binding
+    aws ec2 create-tags
+      --resources  <%= result['Instances'][0]['InstanceId'] %>
+      --tags       'Key=Name,Value=test-instance'
+  SH
 end
 
 desc 'Terminates EC2 instance'
 task :terminate do
-  instance_id = ec2.describe_instances.reservations.first.instances.first.instance_id
-  ec2.terminate_instances(
-    instance_ids: [instance_id]
-  )
+  # Gets the info of instances attached "test-instance" tag
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.41-42
+  result = aws <<-SH, binding
+    aws ec2 describe-instances
+      --filters  'Name=tag-key,Values=Name'
+                 'Name=tag-value,Values=test-instance'
+      --query    'Reservations[*].Instances[*].InstanceId'
+  SH
+  
+  # Terminates the instances
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.40
+  aws <<-SH, binding
+    aws ec2 terminate-instances
+      --instance-ids  <%= result.flatten.join(' ') %>
+  SH
 end
