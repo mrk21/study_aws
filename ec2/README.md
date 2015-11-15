@@ -1,5 +1,7 @@
 # ec2
 
+Amazon Elastic Compute Cloud
+
 ## Rake tasks
 
 ### create
@@ -20,7 +22,3 @@ This task terminates an EC2 instance.
 **CLI**
 
 * [AWS CLIのフィルターとクエリーの使い方についてまとめてみた ｜ Developers.IO](http://dev.classmethod.jp/cloud/aws/aws-cli-filter-and-query-howto/)
-
-**Books**
-
-* [Amazon Web Services実践入門 (WEB+DB PRESS plus) | 舘岡 守, 今井 智明, 永淵 恭子, 間瀬 哲也, 三浦 悟, 柳瀬 任章 | 本 | Amazon.co.jp](http://www.amazon.co.jp/Amazon-Web-Services実践入門-PRESS-plus/dp/4774176737/ref=sr_1_1?ie=UTF8&qid=1447520351&sr=8-1&keywords=amazon+web+service+実践入門)

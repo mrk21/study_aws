@@ -1,6 +1,4 @@
-require 'erb'
-require 'aws-sdk'
-require 'pp'
+require '../util'
 
 namespace :sdk do
   Aws.config.update(region: 'ap-northeast-1')
@@ -27,26 +25,20 @@ namespace :sdk do
   end
 end
 
-def aws(cmd, bind = binding)
-  puts cmd = ERB.new(cmd.gsub(/\s+/, ' ').strip).result(bind)
-  puts json = %x(#{cmd})
-  json = JSON.parse json rescue ''
-end
-
 desc 'Creates EC2 instance'
 task :create do
   # Creates instance
   # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.37-39
   result = aws <<-SH
     aws ec2 run-instances
-      --image-id            ami-0d13700c <%# Amazon Linux %>
-      --instance-type       t1.micro
-      --security-group-ids  default
-      --key-name            default
+      --image-id         ami-0d13700c <%# Amazon Linux %>
+      --instance-type    t1.micro
+      --security-groups  default
+      --key-name         default
   SH
   
   # Attaches tags to created instance
-  # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.37-39
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.39-40
   result = aws <<-SH, binding
     aws ec2 create-tags
       --resources  <%= result['Instances'][0]['InstanceId'] %>

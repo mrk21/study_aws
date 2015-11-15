@@ -1,0 +1,61 @@
+require '../util'
+
+def get_lastest_bucket
+  result = aws 'aws s3api list-buckets'
+  bucket = result['Buckets'].find{|b| b['Name'] =~ /^s3-test-/}
+end
+
+desc 'Creates S3 bucket'
+task :create do
+  # Creates a S3 bucket
+  # @memo The name of a S3 bucket must be unique in the world.
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.146
+  aws <<-SH
+    aws s3api create-bucket
+      --bucket s3-test-<%= rand 100000000 %>
+      --create-bucket-configuration LocationConstraint=ap-northeast-1
+  SH
+  
+  # Gets S3 buckets owned by myself
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.146-147
+  aws <<-SH
+    aws s3api list-buckets
+  SH
+end
+
+desc 'Uploads a file to a S3 bucket'
+task :upload do
+  bucket = get_lastest_bucket
+  
+  # Uploads an image file to a S3 bucket
+  # @memo S3 does not have the concept of a directory, but it can behave like a directory by including "/" to an object name.
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.148
+  aws <<-SH, binding
+    aws s3 cp ./test.png s3://<%= bucket['Name'] %>/test/test-<%= rand 10000 %>.png
+      --region ap-northeast-1
+  SH
+  
+  # Gets the files in the S3 bucket
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.148
+  aws <<-SH, binding
+    aws s3 ls s3://<%= bucket['Name'] %>/
+      --recursive
+      --region ap-northeast-1
+  SH
+end
+
+
+desc 'Deletes a S3 bucket'
+task :delete do
+  bucket = get_lastest_bucket
+  
+  # Deletes a S3 bucket
+  # @see [バケットを空にする、または削除する - Amazon Simple Storage Service]{@link https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/dev/delete-or-empty-bucket.html}
+  aws <<-SH, binding
+    aws s3 rb s3://<%= bucket['Name'] %> --force
+  SH
+  
+  aws <<-SH
+    aws s3api list-buckets
+  SH
+end

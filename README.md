@@ -36,3 +36,7 @@ $ bundle install --path=vendor/bundle
 
 * [AWS SDK for Ruby | アマゾン ウェブ サービス（AWS 日本語）](https://aws.amazon.com/jp/sdk-for-ruby/)
 * [AWS SDK for Ruby(V2)を利用して、Amazon S3を操作する - Qiita](http://qiita.com/itayan/items/112f23cbff13e49cdb53)
+
+## Refer to
+
+* [Amazon Web Services実践入門 (WEB+DB PRESS plus) | 舘岡 守, 今井 智明, 永淵 恭子, 間瀬 哲也, 三浦 悟, 柳瀬 任章 | 本 | Amazon.co.jp](http://www.amazon.co.jp/Amazon-Web-Services実践入門-PRESS-plus/dp/4774176737/ref=sr_1_1?ie=UTF8&qid=1447520351&sr=8-1&keywords=amazon+web+service+実践入門)
