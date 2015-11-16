@@ -1,7 +1,9 @@
 require '../util'
 
 def get_lastest_bucket
-  result = aws 'aws s3api list-buckets'
+  result = aws <<-SH
+    aws s3api list-buckets
+  SH
   bucket = result['Buckets'].find{|b| b['Name'] =~ /^s3-test-/}
 end
 
@@ -44,6 +46,19 @@ task :upload do
   SH
 end
 
+desc 'Deletes a file'
+task :deletefile do
+  bucket = get_lastest_bucket
+  
+  # Deletes a file
+  aws <<-SH, binding
+    aws s3 rm s3://<%= bucket['Name'] %>/test --recursive
+  SH
+  
+  aws <<-SH
+    aws s3api list-buckets
+  SH
+end
 
 desc 'Deletes a S3 bucket'
 task :delete do
