@@ -1,5 +1,6 @@
 require 'erb'
 require 'aws-sdk'
+require 'json'
 require 'pp'
 
 def aws(cmd, bind = binding)

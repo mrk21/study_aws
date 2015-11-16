@@ -1,0 +1,68 @@
+require '../util'
+require 'tempfile'
+
+desc 'Creates Record Set'
+task :create do
+  id = rand 10000
+  domain = "test-#{id}-domain.com"
+  
+  # Creates a Hosted Zone
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.82-83
+  result = aws <<-SH, binding
+    aws route53 create-hosted-zone
+      --name                <%= domain %>                      <%# A domain name %>
+      --caller-reference    "AWS-test-<%= id %>-hosted-zone"   <%# A random and unique string less than or equal to 128 bit %>
+      --hosted-zone-config  Comment="AWS test <%= id %> host"
+  SH
+  
+  zone_id = result['HostedZone']['Id'].split('/').last
+  dns = result['DelegationSet']['NameServers'].first
+  
+  # Gets a list of the Hosted Zone
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.83
+  aws <<-SH, binding
+    aws route53 list-hosted-zones
+  SH
+  
+  # Creates new Record Set
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.92-93
+  Tempfile.open('route53-test') do |f|
+    pp config = {
+      Comment: 'Create records set for EIP.',
+      Changes: [{
+        Action: 'CREATE',
+        ResourceRecordSet: {
+          Name: "www.#{domain}",
+          Type: 'A',
+          TTL: 3600,
+          ResourceRecords: [{
+            Value: '192.168.1.1'
+          }]
+        }
+      }]
+    }
+    
+    f.write JSON.generate(config)
+    path = f.path
+    f.close
+    
+    aws <<-SH, binding
+      aws route53 change-resource-record-sets
+        --hosted-zone-id  <%= zone_id %>
+        --change-batch    file://<%= path %>
+    SH
+  end
+  
+  # Gets a list of the Record Set
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.93
+  aws <<-SH, binding
+    aws route53 list-resource-record-sets
+      --hosted-zone-id  <%= zone_id %>
+  SH
+  
+  print "Please wait 30 seconds"
+  30.times{ print '.'; sleep 1 }
+  puts ''
+  
+  sh "dig @#{dns} A www.#{domain}"
+end
