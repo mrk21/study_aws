@@ -1,0 +1,49 @@
+require '../util'
+
+desc 'Creates a VPC'
+task :create do
+  # Creates a VPC
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.117
+  vpc = aws <<-SH, binding
+    aws ec2 create-vpc
+      --cidr-block 10.0.0.0/16
+  SH
+  aws <<-SH, binding
+    aws ec2 create-tags
+      --resources  <%= vpc['Vpc']['VpcId'] %>
+      --tags       'Key=Name,Value=test-vpc'
+  SH
+  
+  # Creates a subnet
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.119-120
+  subnet = aws <<-SH, binding
+    aws ec2 create-subnet
+      --vpc-id             <%= vpc['Vpc']['VpcId'] %>
+      --cidr-block         10.0.0.0/24
+      --availability-zone  ap-northeast-1a
+  SH
+  aws <<-SH, binding
+    aws ec2 create-tags
+      --resources  <%= subnet['Subnet']['SubnetId'] %>
+      --tags       'Key=Name,Value=test-vpc'
+  SH
+  
+  # Creates an Internet GateWay
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.123
+  gateway = aws <<-SH, binding
+    aws ec2 create-internet-gateway
+  SH
+  aws <<-SH, binding
+    aws ec2 create-tags
+      --resources  <%= gateway['InternetGateway']['InternetGatewayId'] %>
+      --tags       'Key=Name,Value=test-vpc'
+  SH
+  
+  # Attaches the gateway to the vpc
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.124
+  aws <<-SH, binding
+    aws ec2 attach-internet-gateway
+      --internet-gateway-id  <%= gateway['InternetGateway']['InternetGatewayId'] %>
+      --vpc-id               <%= vpc['Vpc']['VpcId'] %>
+  SH
+end
