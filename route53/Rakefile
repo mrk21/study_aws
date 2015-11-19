@@ -28,7 +28,7 @@ task :create do
   # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.92-93
   Tempfile.open('route53-test') do |f|
     pp config = {
-      Comment: 'Create records set for EIP.',
+      Comment: 'Test domain',
       Changes: [{
         Action: 'CREATE',
         ResourceRecordSet: {

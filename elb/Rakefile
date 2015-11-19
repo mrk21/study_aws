@@ -1,0 +1,107 @@
+require '../util'
+
+desc 'Creates an ELB'
+task :create do
+  subnet_ids = aws <<-SH
+    aws ec2 describe-subnets
+      --filters  'Name=tag-key,Values=Name'
+                 'Name=tag-value,Values=default'
+      --query    'Subnets[*].SubnetId'
+  SH
+  
+  security_gruop_ids = aws <<-SH
+    aws ec2 describe-security-groups
+      --filters  'Name=tag-key,Values=Name'
+                 'Name=tag-value,Values=default'
+      --query    'SecurityGroups[*].GroupId'
+  SH
+  
+  # Creates an ELB
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.256
+  elb = aws <<-SH, binding
+    aws elb create-load-balancer
+      --load-balancer-name  test-load-balancer
+      --listeners           Protocol=HTTP,LoadBalancerPort=80,InstanceProtocol=HTTP,InstancePort=80
+      --subnets             <%= subnet_ids.join(' ') %>
+      --security-groups     <%= security_gruop_ids.join(' ') %>
+  SH
+  
+  # Sets the health check config of the ELB
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.256
+  aws <<-SH, binding
+    aws elb configure-health-check
+      --load-balancer-name  test-load-balancer
+      --health-check        Target=HTTP:80/healthcheck.html,Interval=30,UnhealthyThreshold=2,HealthyThreshold=10,Timeout=10
+  SH
+  
+  # Sets the behavior check config of the ELB
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.257
+  aws <<-SH, binding
+    aws elb modify-load-balancer-attributes
+      --load-balancer-name        test-load-balancer
+      --load-balancer-attributes  '{"CrossZoneLoadBalancing": {"Enabled": true}}'
+  SH
+end
+
+desc 'Registers EC2 instances to an ELB'
+task :register do
+  ec2 = aws <<-SH
+    aws ec2 run-instances
+      --image-id         ami-0d13700c <%# Amazon Linux %>
+      --instance-type    t1.micro
+      --security-groups  default
+      --key-name         default
+  SH
+  aws <<-SH, binding
+    aws ec2 create-tags
+      --resources  <%= ec2['Instances'][0]['InstanceId'] %>
+      --tags       'Key=Name,Value=test-load-balancer'
+  SH
+  
+  # Registers EC2 instances to an ELB
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.258
+  aws <<-SH, binding
+    aws elb register-instances-with-load-balancer
+      --load-balancer-name  test-load-balancer
+      --instances           <%= ec2['Instances'][0]['InstanceId'] %>
+  SH
+end
+
+desc 'Deregisters EC2 instances from an ELB'
+task :deregister do
+  ec2_ids = aws <<-SH, binding
+    aws ec2 describe-instances
+      --filters  'Name=tag-key,Values=Name'
+                 'Name=tag-value,Values=test-load-balancer'
+      --query    'Reservations[*].Instances[*].InstanceId'
+  SH
+  
+  # Registers EC2 instances to an ELB
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.258
+  aws <<-SH, binding
+    aws elb deregister-instances-from-load-balancer
+      --load-balancer-name  test-load-balancer
+      --instances           <%= ec2_ids.flatten.join(' ') %>
+  SH
+end
+
+desc 'Deletes an ELB'
+task :delete do
+  # Deletes an ELB
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.258
+  aws <<-SH
+    aws elb delete-load-balancer
+      --load-balancer-name  test-load-balancer
+  SH
+  
+  ec2_ids = aws <<-SH, binding
+    aws ec2 describe-instances
+      --filters  'Name=tag-key,Values=Name'
+                 'Name=tag-value,Values=test-load-balancer'
+      --query    'Reservations[*].Instances[*].InstanceId'
+  SH
+  aws <<-SH, binding
+    aws ec2 terminate-instances
+      --instance-ids  <%= ec2_ids.flatten.join(' ') %>
+  SH
+end
