@@ -31,7 +31,7 @@ task :create do
   aws <<-SH, binding
     aws elb configure-health-check
       --load-balancer-name  test-load-balancer
-      --health-check        Target=HTTP:80/healthcheck.html,Interval=30,UnhealthyThreshold=2,HealthyThreshold=10,Timeout=10
+      --health-check        Target=HTTP:80/,Interval=30,UnhealthyThreshold=2,HealthyThreshold=10,Timeout=10
   SH
   
   # Sets the behavior check config of the ELB
@@ -43,7 +43,7 @@ task :create do
   SH
 end
 
-desc 'Registers EC2 instances to an ELB'
+desc 'Registers EC2 instances to the ELB'
 task :register do
   ids = 2.times.map do
     ec2 = aws <<-SH
@@ -62,6 +62,34 @@ task :register do
     ec2['Instances'][0]['InstanceId']
   end
   
+  ec2s = loop do
+    ec2s = aws(<<-SH, binding)
+      aws ec2 describe-instances
+        --instance-ids  <%= ids.join(' ') %>
+        --query         'Reservations[*]'
+    SH
+    
+    break ec2s if ec2s.all? do |ec2|
+      not ec2['Instances'][0]['PublicDnsName'].empty?
+    end
+    
+    sleep 5
+  end
+  
+  ids = ec2s.map do |ec2|
+    begin
+      puts "Setup #{ec2['Instances'][0]['PublicDnsName']}"
+      ssh host: ec2['Instances'][0]['PublicDnsName'], cmd: 'sudo yum install -y nginx'
+      ssh host: ec2['Instances'][0]['PublicDnsName'], cmd: 'sudo service nginx start'
+    rescue Errno::ECONNREFUSED => e
+      pp e
+      sleep 10
+      retry
+    end
+    
+    ec2['Instances'][0]['InstanceId']
+  end
+  
   # Registers EC2 instances to an ELB
   # @see 『Amazon Web Services実践入門』初版 技術評論社 p.258
   aws <<-SH, binding
@@ -71,7 +99,7 @@ task :register do
   SH
 end
 
-desc 'Deregisters EC2 instances from an ELB'
+desc 'Deregisters EC2 instances from the ELB'
 task :deregister do
   ec2_ids = aws <<-SH, binding
     aws ec2 describe-instances
@@ -89,7 +117,17 @@ task :deregister do
   SH
 end
 
-desc 'Deletes an ELB'
+desc 'Accesses the ELB'
+task :access do
+  elb = aws <<-SH, binding
+    aws elb describe-load-balancers
+      --load-balancer-names  test-load-balancer
+  SH
+  dns = elb['LoadBalancerDescriptions'][0]['DNSName']
+  sh "curl --verbose #{dns}"
+end
+
+desc 'Deletes the ELB'
 task :delete do
   # Deletes an ELB
   # @see 『Amazon Web Services実践入門』初版 技術評論社 p.258
