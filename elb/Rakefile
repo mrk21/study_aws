@@ -45,25 +45,29 @@ end
 
 desc 'Registers EC2 instances to an ELB'
 task :register do
-  ec2 = aws <<-SH
-    aws ec2 run-instances
-      --image-id         ami-0d13700c <%# Amazon Linux %>
-      --instance-type    t1.micro
-      --security-groups  default
-      --key-name         default
-  SH
-  aws <<-SH, binding
-    aws ec2 create-tags
-      --resources  <%= ec2['Instances'][0]['InstanceId'] %>
-      --tags       'Key=Name,Value=test-load-balancer'
-  SH
+  ids = 2.times.map do
+    ec2 = aws <<-SH
+      aws ec2 run-instances
+        --image-id         ami-0d13700c <%# Amazon Linux %>
+        --instance-type    t1.micro
+        --security-groups  default
+        --key-name         default
+    SH
+    aws <<-SH, binding
+      aws ec2 create-tags
+        --resources  <%= ec2['Instances'][0]['InstanceId'] %>
+        --tags       'Key=Name,Value=test-load-balancer'
+    SH
+    
+    ec2['Instances'][0]['InstanceId']
+  end
   
   # Registers EC2 instances to an ELB
   # @see 『Amazon Web Services実践入門』初版 技術評論社 p.258
   aws <<-SH, binding
     aws elb register-instances-with-load-balancer
       --load-balancer-name  test-load-balancer
-      --instances           <%= ec2['Instances'][0]['InstanceId'] %>
+      --instances           <%= ids.join(' ') %>
   SH
 end
 
@@ -76,7 +80,7 @@ task :deregister do
       --query    'Reservations[*].Instances[*].InstanceId'
   SH
   
-  # Registers EC2 instances to an ELB
+  # Deregisters EC2 instances from an ELB
   # @see 『Amazon Web Services実践入門』初版 技術評論社 p.258
   aws <<-SH, binding
     aws elb deregister-instances-from-load-balancer
