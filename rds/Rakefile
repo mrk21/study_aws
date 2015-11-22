@@ -1,0 +1,100 @@
+require '../util'
+
+desc 'Creates a RDS'
+task :create do
+  subnet_ids = aws <<-SH
+    aws ec2 describe-subnets
+      --filters  'Name=tag-key,Values=Name'
+                 'Name=tag-value,Values=default'
+      --query    'Subnets[*].SubnetId'
+  SH
+  
+  security_gruop_ids = aws <<-SH
+    aws ec2 describe-security-groups
+      --filters  'Name=tag-key,Values=Name'
+                 'Name=tag-value,Values=default'
+      --query    'SecurityGroups[*].GroupId'
+  SH
+  
+  # Creates a DB parameter group
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.194
+  aws <<-SH, binding
+    aws rds create-db-parameter-group
+      --db-parameter-group-name    test-param-mysql56
+      --description                mysql56-parameter
+      --db-parameter-group-family  MySQL5.6
+  SH
+  
+  # Creates a DB option group
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.195-196
+  aws <<-SH, binding
+    aws rds create-option-group
+      --option-group-name         test-mysql56-option
+      --option-group-description  mysql56-option
+      --engine-name               mysql
+      --major-engine-version      5.6
+  SH
+  
+  # Creates a DB option group
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.195-196
+  aws <<-SH, binding
+    aws rds create-db-subnet-group
+      --db-subnet-group-name         test-mysql56.subnet
+      --db-subnet-group-description  mysql56.subnet
+      --subnet-ids                   <%= subnet_ids.join(' ') %>
+  SH
+  
+  # Creates a RDS
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.200-203
+  aws <<-SH, binding
+    aws rds create-db-instance
+      --db-name                       test
+      --db-instance-identifier        test-rds
+      --allocated-storage             5
+      --db-instance-class             db.t2.micro
+      --engine                        MySQL
+      --master-username               root
+      --master-user-password          password
+      --vpc-security-group-ids        <%= security_gruop_ids.join(' ') %>
+      --db-subnet-group-name          test-mysql56.subnet
+      --preferred-maintenance-window  Tue:04:00-Tue:04:30
+      --db-parameter-group-name       test-param-mysql56
+      --backup-retention-period       1
+      --preferred-backup-window       04:30-05:00
+      --port                          3306
+      --multi-az
+      --engine-version                5.6.23
+      --auto-minor-version-upgrade
+      --license-model                 general-public-license
+      --option-group-name             test-mysql56-option
+      --no-publicly-accessible
+  SH
+end
+
+desc 'Accesses the RDS instance'
+task :access do
+  rds = aws <<-SH, binding
+    aws rds describe-db-instances
+      --db-instance-identifier  test-rds
+  SH
+  
+  ec2s = get_instance tag: 'test-rds', query: 'Reservations[*]'
+  ec2s = create_instance tag: 'test-rds' if ec2s.empty?
+  dns = ec2s[0]['Instances'][0]['PublicDnsName']
+  
+  ssh host: dns, cmd: 'sudo yum install -y mysql'
+  ssh host: dns, cmd: "echo show databases | mysql -h #{rds['DBInstances'][0]['Endpoint']['Address']} -u root -ppassword"
+end
+
+desc 'Deletes the RDS instance'
+task :delete do
+  destroy_instance tag: 'test-rds'
+  
+  # Deletes a RDS
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.215-218
+  aws <<-SH, binding
+    aws rds delete-db-instance
+      --db-instance-identifier test-rds
+      --skip-final-snapshot
+  SH
+end

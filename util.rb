@@ -37,3 +37,78 @@ def ssh(options = {})
     exec ssh
   end
 end
+
+def create_instance(options = {})
+  options[:n] ||= 1
+  options[:tag] ||= 'tmp'
+  
+  ids = options[:n].times.map do
+    ec2 = aws <<-SH, binding
+      aws ec2 run-instances
+        --image-id         ami-0d13700c <%# Amazon Linux %>
+        --instance-type    t1.micro
+        --security-groups  default
+        --key-name         default
+    SH
+    aws <<-SH, binding
+      aws ec2 create-tags
+        --resources  <%= ec2['Instances'][0]['InstanceId'] %>
+        --tags       'Key=Name,Value=<%= options[:tag] %>'
+    SH
+    
+    ec2['Instances'][0]['InstanceId']
+  end
+  
+  ec2s = loop do
+    ec2s = aws(<<-SH, binding)
+      aws ec2 describe-instances
+        --instance-ids  <%= ids.join(' ') %>
+        --query         'Reservations[*]'
+    SH
+    
+    break ec2s if ec2s.all? do |ec2|
+      not ec2['Instances'][0]['PublicDnsName'].empty?
+    end
+    
+    sleep 5
+  end
+  
+  ec2s.each do |ec2|
+    begin
+      puts "Ping #{ec2['Instances'][0]['PublicDnsName']}"
+      ssh host: ec2['Instances'][0]['PublicDnsName'], cmd: 'echo OK'
+    rescue Errno::ECONNREFUSED => e
+      pp e
+      sleep 10
+      retry
+    end
+  end
+  
+  ec2s
+end
+
+def destroy_instance(options = {})
+  options[:tag] ||= 'tmp'
+  
+  ec2_ids = get_instance \
+    tag: options[:tag],
+    query: 'Reservations[*].Instances[*].InstanceId'
+  
+  aws <<-SH, binding
+    aws ec2 terminate-instances
+      --instance-ids  <%= ec2_ids.flatten.join(' ') %>
+  SH
+end
+
+def get_instance(options = {})
+  result = aws <<-SH, binding
+    aws ec2 describe-instances
+      --filters  'Name=tag-key,Values=Name'
+                 'Name=tag-value,Values=<%= options[:tag] %>'
+      <% if options[:query] && !options[:query].empty? then %>
+        --query  <%= options[:query] %>
+      <% end %>
+  SH
+  
+  result
+end
