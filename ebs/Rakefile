@@ -1,0 +1,10 @@
+require '../util'
+
+desc 'Creates an EBS'
+task :create do
+  aws <<-SH, binding
+    aws ec2 create-volume
+      --size               80
+      --availability-zone  ap-northeast-1a
+  SH
+end

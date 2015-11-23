@@ -94,7 +94,7 @@ task :delete do
   # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.215-218
   aws <<-SH, binding
     aws rds delete-db-instance
-      --db-instance-identifier test-rds
+      --db-instance-identifier  test-rds
       --skip-final-snapshot
   SH
 end
