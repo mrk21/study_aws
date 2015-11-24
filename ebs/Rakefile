@@ -1,10 +1,61 @@
 require '../util'
 
-desc 'Creates an EBS'
+desc 'Creates an EBS volume'
 task :create do
-  aws <<-SH, binding
+  # Creates an EBS volume
+  # @see [create-volume — AWS CLI 1.9.8 Command Reference]{@link http://docs.aws.amazon.com/cli/latest/reference/ec2/create-volume.html}
+  ebs = aws <<-SH, binding
     aws ec2 create-volume
       --size               80
-      --availability-zone  ap-northeast-1a
+      --availability-zone  ap-northeast-1c
   SH
+  attach_tag ebs['VolumeId'], 'test-ebs'
+  
+  loop do
+    ebs = aws <<-SH, binding
+      aws ec2 describe-volumes
+        --filters  'Name=tag-key,Values=Name'
+                   'Name=tag-value,Values=test-ebs'
+    SH
+    break if ebs['Volumes'][0]['State'] == 'available'
+    sleep 5
+  end
+end
+
+desc 'Attaches the EBS volume to an EC2 instance'
+task :attach do
+  ec2 = create_or_get_instance tag: 'test-ebs'
+  
+  ebs = aws <<-SH, binding
+    aws ec2 describe-volumes
+      --filters  'Name=tag-key,Values=Name'
+                 'Name=tag-value,Values=test-ebs'
+  SH
+  
+  # Attaches an EBS volume to an EC2 instance.
+  # @see [attach-volume — AWS CLI 1.9.9 Command Reference]{@link http://docs.aws.amazon.com/cli/latest/reference/ec2/attach-volume.html}
+  attach_info = aws <<-SH, binding
+    aws ec2 attach-volume
+      --volume-id    <%= ebs['Volumes'][0]['VolumeId'] %>
+      --instance-id  <%= ec2[0]['Instances'][0]['InstanceId'] %>
+      --device       /dev/sdf
+  SH
+  
+  loop do
+    ebs = aws <<-SH, binding
+      aws ec2 describe-volumes
+        --filters  'Name=tag-key,Values=Name'
+                   'Name=tag-value,Values=test-ebs'
+    SH
+    break if ebs['Volumes'][0]['State'] == 'in-use'
+    sleep 5
+  end
+  
+  sleep 5
+  
+  dns = ec2[0]['Instances'][0]['PublicDnsName']
+  ssh host: dns, cmd: 'sudo mkfs -t ext4 /dev/sdf'
+  ssh host: dns, cmd: 'sudo mkdir -p /mnt/mount-dir'
+  ssh host: dns, cmd: 'sudo mount /dev/sdf /mnt/mount-dir'
+  ssh host: dns, cmd: 'df -h'
 end

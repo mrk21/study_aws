@@ -16,6 +16,7 @@ def ssh(options = {})
   options[:key] ||= '~/.ssh/default.pem'
   
   if options[:cmd] then
+    puts options[:cmd]
     Net::SSH.start(options[:host], options[:user], keys: [options[:key]]) do |ssh|
       channel = ssh.open_channel do |ch|
         channel.request_pty do |ch, success|
@@ -101,14 +102,29 @@ def destroy_instance(options = {})
 end
 
 def get_instance(options = {})
-  result = aws <<-SH, binding
+  aws <<-SH, binding
     aws ec2 describe-instances
       --filters  'Name=tag-key,Values=Name'
                  'Name=tag-value,Values=<%= options[:tag] %>'
+                 <% if options[:state] then %>
+                   'Name=instance-state-name,Values=<%= options[:state] %>'
+                 <% end %>
       <% if options[:query] && !options[:query].empty? then %>
         --query  <%= options[:query] %>
       <% end %>
   SH
-  
-  result
+end
+
+def attach_tag(resource_id, tag_name)
+  aws <<-SH, binding
+    aws ec2 create-tags
+      --resources  <%= resource_id %>
+      --tags       'Key=Name,Value=<%= tag_name %>'
+  SH
+end
+
+def create_or_get_instance(options = {})
+  ec2s = get_instance options.merge(state: 'running', query: 'Reservations[*]')
+  ec2s = create_instance tag: options[:tag] if ec2s.empty?
+  ec2s
 end
