@@ -59,3 +59,33 @@ task :attach do
   ssh host: dns, cmd: 'sudo mount /dev/sdf /mnt/mount-dir'
   ssh host: dns, cmd: 'df -h'
 end
+
+desc 'detaches the EBS volume'
+task :detach do
+  ebs = aws <<-SH, binding
+    aws ec2 describe-volumes
+      --filters  'Name=tag-key,Values=Name'
+                 'Name=tag-value,Values=test-ebs'
+  SH
+  
+  # Detaches the EBS volume
+  # @see [detach-volume — AWS CLI 1.9.9 Command Reference]{@link http://docs.aws.amazon.com/cli/latest/reference/ec2/detach-volume.html}
+  aws <<-SH, binding
+    aws ec2 detach-volume
+      --volume-id  <%= ebs['Volumes'][0]['VolumeId'] %>
+  SH
+  
+  loop do
+    ebs = aws <<-SH, binding
+      aws ec2 describe-volumes
+        --filters  'Name=tag-key,Values=Name'
+                   'Name=tag-value,Values=test-ebs'
+    SH
+    break if ebs['Volumes'][0]['State'] == 'available'
+    sleep 5
+  end
+  
+  ec2 = get_instance tag: 'test-ebs', query: 'Reservations[*]'
+  dns = ec2[0]['Instances'][0]['PublicDnsName']
+  ssh host: dns, cmd: 'df -h'
+end
