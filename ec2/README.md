@@ -22,3 +22,4 @@ This task terminates an EC2 instance.
 **CLI**
 
 * [AWS CLIのフィルターとクエリーの使い方についてまとめてみた ｜ Developers.IO](http://dev.classmethod.jp/cloud/aws/aws-cli-filter-and-query-howto/)
+* [create-image — AWS CLI 1.9.9 Command Reference](http://docs.aws.amazon.com/cli/latest/reference/ec2/create-image.html)

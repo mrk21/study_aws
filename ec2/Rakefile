@@ -46,6 +46,25 @@ task :create do
   SH
 end
 
+desc 'Backups the EC2 instance'
+task :backup do
+  ec2 = aws <<-SH, binding
+    aws ec2 describe-instances
+      --filters  'Name=tag-key,Values=Name'
+                 'Name=tag-value,Values=test-instance'
+      --query    'Reservations[*]'
+  SH
+  
+  # Backups the EC2 instance
+  # @see [create-image — AWS CLI 1.9.9 Command Reference]{@link http://docs.aws.amazon.com/cli/latest/reference/ec2/create-image.html}
+  aws <<-SH, binding
+    aws ec2 create-image
+      --instance-id  <%= ec2[0]['Instances'][0]['InstanceId'] %>
+      --name         "test-instance"
+      --description  "test-instance"
+  SH
+end
+
 desc 'Terminates EC2 instance'
 task :terminate do
   # Gets the info of instances attached "test-instance" tag
