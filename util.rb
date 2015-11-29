@@ -124,7 +124,11 @@ def attach_tag(resource_id, tag_name)
 end
 
 def create_or_get_instance(options = {})
+  options[:on_create] ||= ->{}
   ec2s = get_instance options.merge(state: 'running', query: 'Reservations[*]')
-  ec2s = create_instance tag: options[:tag] if ec2s.empty?
+  if ec2s.empty? then
+    ec2s = create_instance tag: options[:tag]
+    options[:on_create][ec2s]
+  end
   ec2s
 end

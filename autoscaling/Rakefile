@@ -1,0 +1,78 @@
+require '../util'
+
+desc 'Creates an auto scaling group'
+task :create do
+  # create a base instance
+  ec2s = create_or_get_instance tag: 'test-autoscaling', on_create: ->(ec2s){
+    ec2s.each{|ec2|
+      ssh host: ec2['Instances'][0]['PublicDnsName'], cmd: 'sudo yum install -y nginx'
+      ssh host: ec2['Instances'][0]['PublicDnsName'], cmd: 'sudo service nginx start'
+    }
+  }
+  
+  image = aws <<-SH, binding
+    aws ec2 create-image
+      --instance-id  <%= ec2s[0]['Instances'][0]['InstanceId'] %>
+      --name         'test-autoscaling'
+      --description  'test-autoscaling'
+  SH
+  
+  subnets = aws <<-SH, binding
+    aws ec2 describe-subnets
+      --filters  'Name=tag-key,Values=Name'
+                 'Name=tag-value,Values=default'
+      --query    'Subnets[*]'
+  SH
+  
+  security_gruop_ids = aws <<-SH
+    aws ec2 describe-security-groups
+      --filters  'Name=tag-key,Values=Name'
+                 'Name=tag-value,Values=default'
+      --query    'SecurityGroups[*].GroupId'
+  SH
+  
+  # Creates an ELB
+  elb = aws <<-SH, binding
+    aws elb create-load-balancer
+      --load-balancer-name  test-autoscaling
+      --listeners           Protocol=HTTP,LoadBalancerPort=80,InstanceProtocol=HTTP,InstancePort=80
+      --subnets             <%= subnets.map{|v| v['SubnetId']}.join(' ') %>
+      --security-groups     <%= security_gruop_ids.join(' ') %>
+  SH
+  aws <<-SH, binding
+    aws elb configure-health-check
+      --load-balancer-name  test-autoscaling
+      --health-check        Target=HTTP:80/,Interval=30,UnhealthyThreshold=2,HealthyThreshold=10,Timeout=10
+  SH
+  aws <<-SH, binding
+    aws elb modify-load-balancer-attributes
+      --load-balancer-name        test-autoscaling
+      --load-balancer-attributes  '{"CrossZoneLoadBalancing": {"Enabled": true}}'
+  SH
+  
+  # Creates a launch configuration
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.293
+  aws <<-SH, binding
+    aws autoscaling create-launch-configuration
+      --launch-configuration-name  test-autoscaling-configuration
+      --image-id                   <%= image['ImageId'] %>
+      --security-groups            default
+      --instance-type              t1.micro
+  SH
+  
+  # Creates an auto scaling group
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.294
+  aws <<-SH, binding
+    aws autoscaling create-auto-scaling-group
+      --auto-scaling-group-name    test-autoscaling-group
+      --launch-configuration-name  test-autoscaling-configuration
+      --min-size                   2
+      --max-size                   4
+      --desired-capacity           2
+      --default-cooldown           300
+      --load-balancer-names        test-autoscaling
+      --health-check-type          ELB
+      --health-check-grace-period  300
+      --vpc-zone-identifier        <%= subnets.map{|v| v['SubnetId']}.join(',') %>
+  SH
+end
