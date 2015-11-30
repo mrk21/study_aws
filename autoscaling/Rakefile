@@ -10,12 +10,27 @@ task :create do
     }
   }
   
-  image = aws <<-SH, binding
+  sleep 5
+  
+  images = aws <<-SH, binding
     aws ec2 create-image
       --instance-id  <%= ec2s[0]['Instances'][0]['InstanceId'] %>
       --name         'test-autoscaling'
       --description  'test-autoscaling'
   SH
+  
+  loop do
+    images = aws <<-SH, binding
+      aws ec2 describe-images
+        --filter  'Name=is-public,Values=false'
+                  'Name=name,Values=test-autoscaling'
+        --query   'Images[*]'
+    SH
+    break if images[0]['State'] == 'available'
+    sleep 5
+  end
+  
+  sleep 5
   
   subnets = aws <<-SH, binding
     aws ec2 describe-subnets
@@ -50,12 +65,14 @@ task :create do
       --load-balancer-attributes  '{"CrossZoneLoadBalancing": {"Enabled": true}}'
   SH
   
+  sleep 5
+  
   # Creates a launch configuration
   # @see 『Amazon Web Services実践入門』初版 技術評論社 p.293
   aws <<-SH, binding
     aws autoscaling create-launch-configuration
       --launch-configuration-name  test-autoscaling-configuration
-      --image-id                   <%= image['ImageId'] %>
+      --image-id                   <%= images[0]['ImageId'] %>
       --security-groups            default
       --instance-type              t1.micro
   SH
@@ -74,5 +91,57 @@ task :create do
       --health-check-type          ELB
       --health-check-grace-period  300
       --vpc-zone-identifier        <%= subnets.map{|v| v['SubnetId']}.join(',') %>
+  SH
+  
+  # Creates a scaling policy [scale out]
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.295
+  scale_out_policy = aws <<-SH, binding
+    aws autoscaling put-scaling-policy
+      --auto-scaling-group-name  test-autoscaling-group
+      --policy-name              scale-out-policy
+      --adjustment-type          ChangeInCapacity
+      --scaling-adjustment       2
+  SH
+  
+  # Creates a scaling policy [scale in]
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 p.295
+  scale_in_policy = aws <<-SH, binding
+    aws autoscaling put-scaling-policy
+      --auto-scaling-group-name  test-autoscaling-group
+      --policy-name              scale-in-policy
+      --adjustment-type          ChangeInCapacity
+      --scaling-adjustment       -2
+  SH
+  
+  # Registers alerm for scale out policy
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.295-296
+  aws <<-SH, binding
+    aws cloudwatch put-metric-alarm
+      --alarm-name           test-autoscaling-scale-out
+      --period               300
+      --dimensions           Name=AutoScalingGroupName,Value=test-autoscaling-group
+      --metric-name          CPUUtilization
+      --namespace            AWS/EC2
+      --statistic            Average
+      --evaluation-periods   1
+      --threshold            70.0
+      --comparison-operator  GreaterThanOrEqualToThreshold
+      --alarm-actions        <%= scale_out_policy['PolicyARN'] %>
+  SH
+  
+  # Registers alerm for scale in policy
+  # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.295-296
+  aws <<-SH, binding
+    aws cloudwatch put-metric-alarm
+      --alarm-name           test-autoscaling-scale-in
+      --period               300
+      --dimensions           Name=AutoScalingGroupName,Value=test-autoscaling-group
+      --metric-name          CPUUtilization
+      --namespace            AWS/EC2
+      --statistic            Average
+      --evaluation-periods   1
+      --threshold            30.0
+      --comparison-operator  LessThanOrEqualToThreshold
+      --alarm-actions        <%= scale_in_policy['PolicyARN'] %>
   SH
 end
