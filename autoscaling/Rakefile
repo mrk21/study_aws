@@ -7,6 +7,7 @@ task :create do
     ec2s.each{|ec2|
       ssh host: ec2['Instances'][0]['PublicDnsName'], cmd: 'sudo yum install -y nginx'
       ssh host: ec2['Instances'][0]['PublicDnsName'], cmd: 'sudo service nginx start'
+      ssh host: ec2['Instances'][0]['PublicDnsName'], cmd: 'sudo chkconfig nginx on'
     }
   }
   
@@ -69,11 +70,12 @@ task :create do
   
   # Creates a launch configuration
   # @see 『Amazon Web Services実践入門』初版 技術評論社 p.293
+  # @see [create-launch-configuration — AWS CLI 1.9.9 Command Reference]{@link http://docs.aws.amazon.com/cli/latest/reference/autoscaling/create-launch-configuration.html}
   aws <<-SH, binding
     aws autoscaling create-launch-configuration
       --launch-configuration-name  test-autoscaling-configuration
       --image-id                   <%= images[0]['ImageId'] %>
-      --security-groups            default
+      --security-groups            <%= security_gruop_ids.join(' ') %>
       --instance-type              t1.micro
   SH
   
