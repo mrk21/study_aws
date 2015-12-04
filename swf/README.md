@@ -1,0 +1,9 @@
+# swf
+
+Amazon Simple Workflow Service
+
+## Refer to
+
+* [Amazon Simple Workflow Service (SWF)](http://www.slideshare.net/AmazonWebServicesJapan/amazon-simple-workflow-service-swf)
+* [Using the AWS CLI with Amazon Simple Workflow Service - Amazon Simple Workflow Service](http://docs.aws.amazon.com/ja_jp/amazonswf/latest/developerguide/using-cli.html)
+* [Amazon Simple Workflow Service (SWF) 入門 ｜ Developers.IO](http://dev.classmethod.jp/cloud/aws/introduction-to-amazon-simple-workflow-service/)

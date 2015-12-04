@@ -1,0 +1,19 @@
+require '../util'
+
+desc 'Creates a workflow'
+task :create do
+  # Registers a domain
+  aws <<-SH, binding
+    aws swf register-domain
+      --name                                         TestSwfDomain
+      --workflow-execution-retention-period-in-days  0
+  SH
+  
+  # Registers a workflow
+  aws <<-SH, binding
+    aws swf register-workflow-type
+      --domain            TestSwfDomain
+      --name              TestSwfDomain
+      --workflow-version  "vl"
+  SH
+end
