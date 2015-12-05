@@ -1,19 +1,17 @@
 require '../util'
 
-desc 'Creates a workflow'
-task :create do
-  # Registers a domain
-  aws <<-SH, binding
-    aws swf register-domain
-      --name                                         TestSwfDomain
-      --workflow-execution-retention-period-in-days  0
-  SH
-  
-  # Registers a workflow
-  aws <<-SH, binding
-    aws swf register-workflow-type
-      --domain            TestSwfDomain
-      --name              TestSwfDomain
-      --workflow-version  "vl"
-  SH
+task :run do
+  commands = [
+    'bundle exec ruby activity.rb',
+    'bundle exec ruby workflow.rb',
+    'bundle exec ruby main.rb',
+  ]
+  pids = commands.map do |cmd|
+    puts cmd
+    pid = fork{exec cmd}
+    sleep 1
+    pid
+  end
+  STDIN.gets
+  pids.each{|pid| Process.kill 'KILL', pid }
 end
