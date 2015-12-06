@@ -1,5 +1,5 @@
 require './util'
-require "./activity"
+require './worker'
 
 class TestSwfWorkflow
   extend AWS::Flow::Workflows
