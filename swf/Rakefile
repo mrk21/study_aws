@@ -1,10 +1,11 @@
 require '../util'
 
+desc 'Runs an activities'
 task :run do
   commands = [
     'bundle exec ruby activity.rb',
     'bundle exec ruby workflow.rb',
-    'bundle exec ruby main.rb',
+    'bundle exec ruby decider.rb',
   ]
   pids = commands.map do |cmd|
     puts cmd

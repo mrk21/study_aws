@@ -2,6 +2,12 @@
 
 Amazon Simple Workflow Service
 
+## Rake tasks
+
+### run
+
+This task runs an activities.
+
 ## Refer to
 
 * [Amazon Simple Workflow Service (SWF)](http://www.slideshare.net/AmazonWebServicesJapan/amazon-simple-workflow-service-swf)
