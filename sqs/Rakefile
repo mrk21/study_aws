@@ -1,0 +1,35 @@
+require '../util'
+
+desc 'Creates a queue'
+task :create do
+  que = aws <<-SH, binding
+    aws sqs create-queue
+      --queue-name  test-queue
+  SH
+  
+  aws <<-SH, binding
+    aws sqs send-message
+      --queue-url      <%= que['QueueUrl'] %>
+      --message-body   'test'
+      --delay-seconds  1
+  SH
+  
+  sleep 3
+  
+  queued_message_size = aws <<-SH, binding
+    aws sqs get-queue-attributes
+      --queue-url        <%= que['QueueUrl'] %>
+      --attribute-names  ApproximateNumberOfMessages
+  SH
+  
+  received_messages = aws <<-SH, binding
+    aws sqs receive-message
+      --queue-url  <%= que['QueueUrl'] %>
+  SH
+  
+  aws <<-SH, binding
+    aws sqs get-queue-attributes
+      --queue-rul        <%= que['QueueUrl'] %>
+      --attribute-names  ApproximateNumberOfMessages
+  SH
+end
