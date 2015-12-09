@@ -1,0 +1,18 @@
+require '../util'
+
+desc 'Send a mail'
+task :send do
+  print 'from: '
+  from = STDIN.gets.chomp
+  
+  print 'to: '
+  to = STDIN.gets.chomp
+  
+  aws <<-SH, binding
+    aws --region us-east-1 ses send-email
+      --to       <%= to %>
+      --from     <%= from %>
+      --subject  'test-mail'
+      --text     'test-mail'
+  SH
+end
