@@ -1,0 +1,9 @@
+require '../util'
+
+desc 'Creates an application'
+task :create do
+  aws <<-SH, binding
+    aws elasticbeanstalk create-application
+      --application-name test-application
+  SH
+end
