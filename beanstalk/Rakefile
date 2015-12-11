@@ -2,8 +2,29 @@ require '../util'
 
 desc 'Creates an application'
 task :create do
+  # Creates an application
+  # @see $ aws elasticbeanstalk create-application help
   aws <<-SH, binding
     aws elasticbeanstalk create-application
-      --application-name test-application
+      --application-name  test-application
+  SH
+  
+  # Creates a version of the application
+  # @see $ aws elasticbeanstalk create-application-version help
+  aws <<-SH, binding
+    aws elasticbeanstalk create-application-version
+      --application-name  test-application
+      --version-label     0.0.1
+  SH
+  
+  # Creates an environment in the application
+  # @see $ aws elasticbeanstalk create-environment help
+  # @see [Supported Platforms - AWS Elastic Beanstalk]{@link http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/concepts.platforms.html}
+  aws <<-SH, binding
+    aws elasticbeanstalk create-environment
+      --application-name     test-application
+      --environment-name     test-environment
+      --version-label        0.0.1
+      --solution-stack-name  '64bit Amazon Linux 2015.09 v2.0.4 running Ruby 2.2 (Puma)'
   SH
 end
