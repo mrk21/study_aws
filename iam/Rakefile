@@ -1,0 +1,10 @@
+require '../util'
+
+desc 'Creates a role'
+task :create do
+  aws <<-SH, binding
+    aws iam create-role
+      --role-name                    test-role
+      --assume-role-policy-document  file://<%= Dir.pwd %>/policy.json
+  SH
+end
