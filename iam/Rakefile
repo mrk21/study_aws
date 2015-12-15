@@ -1,10 +1,35 @@
 require '../util'
 
 desc 'Creates a role'
-task :create do
+task :create_role do
   aws <<-SH, binding
     aws iam create-role
       --role-name                    test-role
       --assume-role-policy-document  file://<%= Dir.pwd %>/policy.json
+  SH
+end
+
+desc 'Creates a user'
+task :create_user do
+  aws <<-SH, binding
+    aws iam create-user
+      --user-name  test-user
+  SH
+  
+  aws <<-SH, binding
+    aws iam create-group
+      --group-name  test-group
+  SH
+  
+  aws <<-SH, binding
+    aws iam add-user-to-group
+      --group-name  test-group
+      --user-name   test-user
+  SH
+  
+  aws <<-SH, binding
+    aws iam attach-user-policy
+      --user-name   test-user
+      --policy-arn  arn:aws:iam::aws:policy/AdministratorAccess
   SH
 end
