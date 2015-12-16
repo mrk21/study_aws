@@ -33,3 +33,12 @@ task :create_user do
       --policy-arn  arn:aws:iam::aws:policy/AdministratorAccess
   SH
 end
+
+
+desc 'IAM instance profile'
+task :ec2 do
+  ec2 = aws <<-SH, binding
+    aws iam create-instance-profile
+      --instance-profile-name  TestProfile
+  SH
+end
