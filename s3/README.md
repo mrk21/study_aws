@@ -18,4 +18,5 @@ This task deletes a S3 bucket.
 
 ## Refer to
 
+* [[AWSマイスターシリーズ]Amazon Simple Storage Service (S3)](http://www.slideshare.net/AmazonWebServicesJapan/20130327-aws-meisterregenerates3public)
 * [バケットを空にする、または削除する - Amazon Simple Storage Service](https://docs.aws.amazon.com/ja_jp/AmazonS3/latest/dev/delete-or-empty-bucket.html)

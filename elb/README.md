@@ -26,4 +26,5 @@ This task accesses the ELB.
 
 ## Refer to
 
+* [[AWSマイスターシリーズ]Amazon Elastic Load Balancing (ELB)](http://www.slideshare.net/AmazonWebServicesJapan/20130612-aws-meisterregenerateelbpublic)
 * [0から始めるAWS入門③：ELB編 - Qiita](http://qiita.com/hiroshik1985/items/ffda3f2bdb71599783a3)

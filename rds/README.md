@@ -15,3 +15,7 @@ This task creates an EC2 instance to access the RDS instance, and it sends a que
 ## delete
 
 This task deletes the RDS instance.
+
+## Refer to
+
+* [[AWSマイスターシリーズ]Amazon Relational Database Service (RDS)](http://www.slideshare.net/AmazonWebServicesJapan/20130410-aws-meisterregeneraterdspublic)

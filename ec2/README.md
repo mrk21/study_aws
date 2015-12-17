@@ -14,6 +14,8 @@ This task terminates an EC2 instance.
 
 ## Refer to
 
+* [[AWSマイスターシリーズ] Amazon Elastic Compute Cloud (EC2)](http://www.slideshare.net/AmazonWebServicesJapan/aws-amazon-elastic-compute-cloud-ec2)
+
 **SDK**
 
 * [File: README — AWS SDK for Ruby V2](http://docs.aws.amazon.com/sdkforruby/api/index.html#API_Clients__aws-sdk-core_gem_)
