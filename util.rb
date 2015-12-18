@@ -132,3 +132,8 @@ def create_or_get_instance(options = {})
   end
   ec2s
 end
+
+def dynamodb_client
+  db = Aws::DynamoDB::Client.new \
+    region: 'ap-northeast-1'
+end

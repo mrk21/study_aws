@@ -2,8 +2,7 @@ require '../util'
 
 desc 'Creates an application'
 task :create do
-  db = Aws::DynamoDB::Client.new \
-    region: 'ap-northeast-1'
+  db = dynamodb_client
   
   pp table = db.create_table(
     table_name: 'test_table',
@@ -27,6 +26,7 @@ task :create do
   
   sleep 5
   
+  # PutItem: Put a single item
   pp result = db.put_item(
     table_name: 'test_table',
     item: {
@@ -36,10 +36,33 @@ task :create do
   
   sleep 3
   
+  # GetItem: Get a single item
   pp result = db.get_item(
     table_name: 'test_table',
     key: {
       id: '1'
     }
+  )
+end
+
+desc 'Gets multiple items'
+task :batch_get_item do
+  db = dynamodb_client
+  
+  # BatchGetItem: Gets multiple items.
+  # @see [Class: Aws::DynamoDB::Client — AWS SDK for Ruby V2]{@link http://docs.aws.amazon.com/sdkforruby/api/Aws/DynamoDB/Client.html#batch_get_item-instance_method}
+  pp result = db.batch_get_item(
+    request_items: {
+      'test_table' => {
+        keys: [
+          {
+            id: '1'
+          },
+        ],
+        attributes_to_get: ['id'],
+        consistent_read: true,
+      },
+    },
+    return_consumed_capacity: 'INDEXES'
   )
 end
