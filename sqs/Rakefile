@@ -2,34 +2,146 @@ require '../util'
 
 desc 'Creates a queue'
 task :create do
-  que = aws <<-SH, binding
+  aws <<-SH, binding
     aws sqs create-queue
       --queue-name  test-queue
   SH
-  
-  aws <<-SH, binding
-    aws sqs send-message
-      --queue-url      <%= que['QueueUrl'] %>
-      --message-body   'test'
-      --delay-seconds  1
+end
+
+desc 'Sends messages and receives messages'
+task :message do
+  que = aws <<-SH, binding
+    aws sqs get-queue-url
+      --queue-name  test-queue
   SH
+  
+  5.times do |i|
+    puts "## send ##{i+1}"
+    
+    aws <<-SH, binding
+      aws sqs send-message
+        --queue-url      <%= que['QueueUrl'] %>
+        --message-body   'message #<%= i+1 %>'
+        --delay-seconds  1
+    SH
+  end
   
   sleep 3
   
-  queued_message_size = aws <<-SH, binding
+  aws <<-SH, binding
     aws sqs get-queue-attributes
       --queue-url        <%= que['QueueUrl'] %>
       --attribute-names  ApproximateNumberOfMessages
   SH
   
-  received_messages = aws <<-SH, binding
-    aws sqs receive-message
-      --queue-url  <%= que['QueueUrl'] %>
-  SH
+  5.times do |i|
+    puts "## receive ##{i+1}"
+    
+    received = aws <<-SH, binding
+      aws sqs receive-message
+        --queue-url  <%= que['QueueUrl'] %>
+    SH
+    
+    aws <<-SH, binding
+      aws sqs delete-message
+        --queue-url       <%= que['QueueUrl'] %>
+        --receipt-handle  <%= received['Messages'][0]['ReceiptHandle'] %>
+    SH
+  end
+  
+  sleep 3
   
   aws <<-SH, binding
     aws sqs get-queue-attributes
-      --queue-rul        <%= que['QueueUrl'] %>
+      --queue-url        <%= que['QueueUrl'] %>
       --attribute-names  ApproximateNumberOfMessages
   SH
+end
+
+desc 'Sends messages at one time and receives messages'
+task :multi_message do
+  que = aws <<-SH, binding
+    aws sqs get-queue-url
+      --queue-name  test-queue
+  SH
+  
+  create_json 'messages.json', 10.times.map{|i| {
+    Id: "ID-#{i+1}",
+    MessageBody: "message ##{i+1}",
+    DelaySeconds: 1
+  }}
+  
+  aws <<-SH, binding
+    aws sqs send-message-batch
+      --queue-url  <%= que['QueueUrl'] %>
+      --entries    file://messages.json
+  SH
+  
+  sleep 5
+  
+  aws <<-SH, binding
+    aws sqs get-queue-attributes
+      --queue-url        <%= que['QueueUrl'] %>
+      --attribute-names  ApproximateNumberOfMessages
+  SH
+  
+  received = aws <<-SH, binding
+    aws sqs receive-message
+      --queue-url               <%= que['QueueUrl'] %>
+      --max-number-of-messages  10
+  SH
+  
+  received['Messages'].each do |msg|
+    aws <<-SH, binding
+      aws sqs delete-message
+        --queue-url       <%= que['QueueUrl'] %>
+        --receipt-handle  <%= msg['ReceiptHandle'] %>
+    SH
+  end
+  
+  aws <<-SH, binding
+    aws sqs get-queue-attributes
+      --queue-url        <%= que['QueueUrl'] %>
+      --attribute-names  ApproximateNumberOfMessages
+  SH
+end
+
+desc 'Waits for messages are stored'
+task :long_polling do
+  que = aws <<-SH, binding
+    aws sqs get-queue-url
+      --queue-name  test-queue
+  SH
+  
+  fork do
+    puts "## Please wait sending a message..."
+    sleep 5
+    
+    aws <<-SH, binding
+      aws sqs send-message
+        --queue-url      <%= que['QueueUrl'] %>
+        --message-body   'message'
+        --delay-seconds  1
+    SH
+  end
+  
+  puts "## Please wait receiving messages..."
+  
+  # @memo  --wait-time-seconds (integer)
+  #        The duration (in seconds) for which the call will wait for a message
+  #        to arrive in the queue before returning. If a message is  available,
+  #        the call will return sooner than WaitTimeSeconds.
+  # @see   $ aws sqs receive-message help
+  received = aws <<-SH, binding
+    aws sqs receive-message
+      --queue-url          <%= que['QueueUrl'] %>
+      --wait-time-seconds  20
+  SH
+  aws <<-SH, binding
+    aws sqs delete-message
+      --queue-url       <%= que['QueueUrl'] %>
+      --receipt-handle  <%= received['Messages'][0]['ReceiptHandle'] %>
+  SH
+  
+  Process.waitall
 end

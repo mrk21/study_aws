@@ -137,3 +137,8 @@ def dynamodb_client
   db = Aws::DynamoDB::Client.new \
     region: 'ap-northeast-1'
 end
+
+def create_json(filename, object)
+  File.write filename, JSON.generate(object)
+  filename
+end
