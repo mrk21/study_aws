@@ -4,6 +4,7 @@ desc 'Creates a VPC'
 task :create do
   # Creates a VPC
   # @see 『Amazon Web Services実践入門』初版 技術評論社 p.117
+  # @see [aws-cli で使って覚える VPC の作り方と EC2 インスタンスの作り方 - ようへいの日々精進XP]{@link http://inokara.hateblo.jp/entry/2014/03/01/184704}
   vpc = aws <<-SH, binding
     aws ec2 create-vpc
       --cidr-block 10.0.0.0/16
@@ -16,11 +17,12 @@ task :create do
   
   # Creates a subnet
   # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.119-120
+  # @see [aws-cli で使って覚える VPC の作り方と EC2 インスタンスの作り方 - ようへいの日々精進XP]{@link http://inokara.hateblo.jp/entry/2014/03/01/184704}
   subnet = aws <<-SH, binding
     aws ec2 create-subnet
       --vpc-id             <%= vpc['Vpc']['VpcId'] %>
       --cidr-block         10.0.0.0/24
-      --availability-zone  ap-northeast-1a
+      --availability-zone  ap-northeast-1c
   SH
   aws <<-SH, binding
     aws ec2 create-tags
@@ -30,6 +32,7 @@ task :create do
   
   # Creates an Internet GateWay
   # @see 『Amazon Web Services実践入門』初版 技術評論社 p.123
+  # @see [aws-cli で使って覚える VPC の作り方と EC2 インスタンスの作り方 - ようへいの日々精進XP]{@link http://inokara.hateblo.jp/entry/2014/03/01/184704}
   gateway = aws <<-SH, binding
     aws ec2 create-internet-gateway
   SH
@@ -41,9 +44,57 @@ task :create do
   
   # Attaches the gateway to the vpc
   # @see 『Amazon Web Services実践入門』初版 技術評論社 p.124
+  # @see [aws-cli で使って覚える VPC の作り方と EC2 インスタンスの作り方 - ようへいの日々精進XP]{@link http://inokara.hateblo.jp/entry/2014/03/01/184704}
   aws <<-SH, binding
     aws ec2 attach-internet-gateway
       --internet-gateway-id  <%= gateway['InternetGateway']['InternetGatewayId'] %>
       --vpc-id               <%= vpc['Vpc']['VpcId'] %>
+  SH
+  
+  # Creates a route to the internet gateway
+  # @see [aws-cli で使って覚える VPC の作り方と EC2 インスタンスの作り方 - ようへいの日々精進XP]{@link http://inokara.hateblo.jp/entry/2014/03/01/184704}
+  route_tables = aws <<-SH, binding
+    aws ec2 describe-route-tables
+      --filters  Name=vpc-id,Values=<%= vpc['Vpc']['VpcId'] %>
+      --query    'RouteTables[*]'
+  SH
+  aws <<-SH, binding
+    aws ec2 create-route
+      --route-table-id          <%= route_tables[0]['RouteTableId'] %>
+      --gateway-id              <%= gateway['InternetGateway']['InternetGatewayId'] %>
+      --destination-cidr-block  0.0.0.0/0
+  SH
+  
+  # Creates a security group for the vpc
+  # @see [aws-cli で使って覚える VPC の作り方と EC2 インスタンスの作り方 - ようへいの日々精進XP]{@link http://inokara.hateblo.jp/entry/2014/03/01/184704}
+  security_group = aws <<-SH, binding
+    aws ec2 create-security-group
+      --group-name   test-vpc
+      --description  "test vpc"
+      --vpc-id       <%= vpc['Vpc']['VpcId'] %>
+  SH
+  aws <<-SH, binding
+    aws ec2 authorize-security-group-ingress
+      --group-id  <%= security_group['GroupId'] %>
+      --protocol  tcp
+      --port      22
+      --cidr      0.0.0.0/0
+  SH
+  
+  # Creates an EC2 instance
+  # @see [aws-cli で使って覚える VPC の作り方と EC2 インスタンスの作り方 - ようへいの日々精進XP]{@link http://inokara.hateblo.jp/entry/2014/03/01/184704}
+  ec2 = aws <<-SH, binding
+    aws ec2 run-instances
+      --image-id            ami-0d13700c <%# Amazon Linux %>
+      --instance-type       t1.micro
+      --key-name            default
+      --security-group-ids  <%= security_group['GroupId'] %>
+      --subnet-id           <%= subnet['Subnet']['SubnetId'] %>
+      --associate-public-ip-address
+  SH
+  aws <<-SH, binding
+    aws ec2 create-tags
+      --resources  <%= ec2['Instances'][0]['InstanceId'] %>
+      --tags       'Key=Name,Value=test-vpc'
   SH
 end
