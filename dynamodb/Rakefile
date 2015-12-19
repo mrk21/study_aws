@@ -1,40 +1,49 @@
 require '../util'
 
-desc 'Creates an application'
+desc 'Creates a table'
 task :create do
   db = dynamodb_client
   
   pp table = db.create_table(
     table_name: 'test_table',
-    key_schema: [
-      {
-        attribute_name: 'id',
-        key_type: 'HASH'
-      }
-    ],
     attribute_definitions: [
       {
         attribute_name: 'id',
         attribute_type: 'S'
-      }
+      },
+    ],
+    key_schema: [
+      {
+        attribute_name: 'id',
+        key_type: 'HASH'
+      },
     ],
     provisioned_throughput: {
       read_capacity_units: 2,
       write_capacity_units: 2
     }
   )
+end
+
+desc 'Puts an item'
+task :put do
+  db = dynamodb_client
   
-  sleep 5
-  
-  # PutItem: Put a single item
-  pp result = db.put_item(
-    table_name: 'test_table',
-    item: {
-      id: '1',
-    },
-  )
-  
-  sleep 3
+  10.times do |i|
+    # PutItem: Put a single item
+    pp result = db.put_item(
+      table_name: 'test_table',
+      item: {
+        id: i.to_s,
+        value: 100*i
+      }
+    )
+  end
+end
+
+desc 'Gets an item'
+task :get do
+  db = dynamodb_client
   
   # GetItem: Get a single item
   pp result = db.get_item(
@@ -46,7 +55,7 @@ task :create do
 end
 
 desc 'Gets multiple items'
-task :batch_get_item do
+task :batch_get do
   db = dynamodb_client
   
   # BatchGetItem: Gets multiple items.
@@ -54,12 +63,8 @@ task :batch_get_item do
   pp result = db.batch_get_item(
     request_items: {
       'test_table' => {
-        keys: [
-          {
-            id: '1'
-          },
-        ],
-        attributes_to_get: ['id'],
+        keys: 5.times.map{|i| {id: i.to_s}},
+        attributes_to_get: ['id','value'],
         consistent_read: true,
       },
     },
