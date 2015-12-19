@@ -1,0 +1,54 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Create Security Group.",
+  
+  "Parameters": {
+    "VpcId": {
+      "Type": "String",
+      "Description": "VPC ID"
+    }
+  },
+  
+  "Mappings": {
+    "Cidr": {
+      "Public": {
+        "Ip": "0.0.0.0/0"
+      }
+    }
+  },
+  
+  "Conditions": {
+    "Truthy": {"Fn::Equals": ["1","1"]}
+  },
+  
+  "Resources": {
+    "InstanceSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Condition": "Truthy",
+      
+      "Properties": {
+        "GroupDescription": "Allow http to client host",
+        "VpcId": {"Ref": "VpcId"},
+        "SecurityGroupIngress": [{
+          "IpProtocol": "tcp",
+          "FromPort": "80",
+          "ToPort": "80",
+          "CidrIp": {"Fn::FindInMap": ["Cidr", "Public", "Ip"]}
+        }],
+        "SecurityGroupEgress": [{
+          "IpProtocol": "tcp",
+          "FromPort": "80",
+          "ToPort": "80",
+          "CidrIp": {"Fn::FindInMap": ["Cidr", "Public", "Ip"]}
+        }]
+      }
+    }
+  },
+  
+  "Outputs": {
+    "TargetVpc": {
+      "Description": "Target VPC ID",
+      "Value": {"Ref": "VpcId"}
+    }
+  }
+}

@@ -9,34 +9,6 @@ task :create do
       --query    'Vpcs[*]'
   SH
   
-  File.write('test.template', ERB.new(<<-JSON).result(binding))
-    {
-      "AWSTemplateFormatVersion" : "2010-09-09",
-      "Description" : "Create Security Group.",
-      "Resources" : {
-        "InstanceSecurityGroup" : {
-          "Type" : "AWS::EC2::SecurityGroup",
-          "Properties" : {
-            "GroupDescription" : "Allow http to client host",
-            "VpcId" : "<%= vpcs[0]['VpcId'] %>",
-            "SecurityGroupIngress" : [{
-              "IpProtocol" : "tcp",
-              "FromPort" : "80",
-              "ToPort" : "80",
-              "CidrIp" : "0.0.0.0/0"
-            }],
-            "SecurityGroupEgress" : [{
-               "IpProtocol" : "tcp",
-               "FromPort" : "80",
-               "ToPort" : "80",
-               "CidrIp" : "0.0.0.0/0"
-            }]
-          }
-        }
-      }
-    }
-  JSON
-  
   # Create a stack
   # @see [AWS CLIで CloudFormationを操作する - aws memo]{@link http://understeer.hatenablog.com/entry/2013/10/18/195500}
   # @see [AWS CLIでサービスの各種コマンドを動かしてみる(CloudFormation編) ｜ Developers.IO]{@link http://dev.classmethod.jp/cloud/aws/awscli-cloudformation/}
@@ -44,7 +16,8 @@ task :create do
     aws cloudformation create-stack
       --region         ap-northeast-1
       --stack-name     test-stack
-      --template-body  file://<%= Dir.pwd %>/test.template
+      --template-body  file://template.json
+      --parameters     ParameterKey=VpcId,ParameterValue=<%= vpcs[0]['VpcId'] %>
   SH
 end
 
