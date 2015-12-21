@@ -35,8 +35,15 @@ task :create_user do
 end
 
 
-desc 'IAM instance profile'
-task :ec2 do
+desc 'Attaches IAM instance profile'
+task :attach_ec2 do
+  ec2 = aws <<-SH, binding
+    aws ec2 run-instances
+      --image-id              ami-0d13700c <%# Amazon Linux %>
+      --instance-type         t1.micro
+      --key-name              default
+      --iam-instance-profile  Name=test-role
+  SH
   aws <<-SH, binding
     aws ec2 create-tags
       --resources  <%= ec2['Instances'][0]['InstanceId'] %>
