@@ -37,8 +37,9 @@ end
 
 desc 'IAM instance profile'
 task :ec2 do
-  ec2 = aws <<-SH, binding
-    aws iam create-instance-profile
-      --instance-profile-name  TestProfile
+  aws <<-SH, binding
+    aws ec2 create-tags
+      --resources  <%= ec2['Instances'][0]['InstanceId'] %>
+      --tags       'Key=Name,Value=test-iam'
   SH
 end
