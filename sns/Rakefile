@@ -1,0 +1,9 @@
+require '../util'
+
+desc 'Creates a topic'
+task :create do
+  aws <<-SH, binding
+    aws sns create-topic
+      --name  test-topic
+  SH
+end
