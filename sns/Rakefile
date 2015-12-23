@@ -2,8 +2,18 @@ require '../util'
 
 desc 'Creates a topic'
 task :create do
-  aws <<-SH, binding
+  topic = aws <<-SH, binding
     aws sns create-topic
       --name  test-topic
+  SH
+  
+  print 'endpoint: '
+  endpoint = STDIN.gets
+  
+  aws <<-SH, binding
+    aws sns subscribe
+       --protocol               'email'
+       --topic-arn              <%= topic['TopicArn'] %>
+       --notification-endpoint  <%= endpoint %>
   SH
 end
