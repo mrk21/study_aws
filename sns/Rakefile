@@ -16,4 +16,17 @@ task :create do
        --topic-arn              <%= topic['TopicArn'] %>
        --notification-endpoint  <%= endpoint %>
   SH
+  
+  print 'Confirm subscription URL: '
+  confirm_url = STDIN.gets
+  
+  confirm_url = URI.parse confirm_url
+  params = Hash[URI.decode_www_form confirm_url.query]
+  
+  aws <<-SH, binding
+    aws sns confirm-subscription
+      --topic-arn                     <%= topic['TopicArn'] %>
+      --token                         <%= params['Token'] %>
+      --authenticate-on-unsubscribe  true
+  SH
 end
