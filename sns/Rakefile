@@ -7,12 +7,12 @@ task :create do
       --name  test-topic
   SH
   
-  print 'endpoint: '
+  print 'endpoint mail address: '
   endpoint = STDIN.gets
   
   aws <<-SH, binding
     aws sns subscribe
-       --protocol               'email'
+       --protocol               email
        --topic-arn              <%= topic['TopicArn'] %>
        --notification-endpoint  <%= endpoint %>
   SH
@@ -25,8 +25,15 @@ task :create do
   
   aws <<-SH, binding
     aws sns confirm-subscription
-      --topic-arn                     <%= topic['TopicArn'] %>
-      --token                         <%= params['Token'] %>
+      --topic-arn                    <%= topic['TopicArn'] %>
+      --token                        <%= params['Token'] %>
       --authenticate-on-unsubscribe  true
+  SH
+  
+  aws <<-SH, binding
+    aws sns publish
+      --topic-arn  <%= topic['TopicArn'] %>
+      --message    'test message'
+      --subject    'test subject'
   SH
 end
