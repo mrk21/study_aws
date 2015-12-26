@@ -2,14 +2,17 @@ require '../util'
 
 desc 'Creates a topic'
 task :create do
+  # Creates a topic
+  # @see [[JAWS-UG CLI] SNS:#1 トピックの作成 - Qiita]{@link http://qiita.com/tcsh/items/e05e21e7338668cbf3b8}
   topic = aws <<-SH, binding
     aws sns create-topic
       --name  test-topic
   SH
   
+  # Subscribes
+  # @see [[JAWS-UG CLI] SNS:#2 通知先の登録 (e-mail) - Qiita]{@link http://qiita.com/tcsh/items/ca81576b0018bfa32cbe}
   print 'endpoint mail address: '
   endpoint = STDIN.gets
-  
   aws <<-SH, binding
     aws sns subscribe
        --protocol               email
@@ -17,12 +20,11 @@ task :create do
        --notification-endpoint  <%= endpoint %>
   SH
   
+  # Confirm the subscribing
+  # @see [[JAWS-UG CLI] SNS:#2 通知先の登録 (e-mail) - Qiita]{@link http://qiita.com/tcsh/items/ca81576b0018bfa32cbe}
   print 'Confirm subscription URL: '
-  confirm_url = STDIN.gets
-  
-  confirm_url = URI.parse confirm_url
+  confirm_url = URI.parse STDIN.gets
   params = Hash[URI.decode_www_form confirm_url.query]
-  
   aws <<-SH, binding
     aws sns confirm-subscription
       --topic-arn                    <%= topic['TopicArn'] %>
@@ -30,6 +32,8 @@ task :create do
       --authenticate-on-unsubscribe  true
   SH
   
+  # Publishes
+  # @see [[JAWS-UG CLI] SNS:#3 メッセージの配信 - Qiita]{@link http://qiita.com/tcsh/items/4a37ec0f4b235a85e00c}
   aws <<-SH, binding
     aws sns publish
       --topic-arn  <%= topic['TopicArn'] %>
