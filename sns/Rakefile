@@ -15,12 +15,19 @@ task :create do
   endpoint = STDIN.gets
   aws <<-SH, binding
     aws sns subscribe
-       --protocol               email
-       --topic-arn              <%= topic['TopicArn'] %>
-       --notification-endpoint  <%= endpoint %>
+      --protocol               email
+      --topic-arn              <%= topic['TopicArn'] %>
+      --notification-endpoint  <%= endpoint %>
   SH
   
-  # Confirm the subscribing
+  # Gets the topic information
+  # @see [[JAWS-UG CLI] SNS:#2 通知先の登録 (e-mail) - Qiita]{@link http://qiita.com/tcsh/items/ca81576b0018bfa32cbe}
+  aws <<-SH, binding
+    aws sns get-topic-attributes
+      --topic-arn  <%= topic['TopicArn'] %>
+  SH
+  
+  # Confirms the subscribing
   # @see [[JAWS-UG CLI] SNS:#2 通知先の登録 (e-mail) - Qiita]{@link http://qiita.com/tcsh/items/ca81576b0018bfa32cbe}
   print 'Confirm subscription URL: '
   confirm_url = URI.parse STDIN.gets
@@ -30,6 +37,13 @@ task :create do
       --topic-arn                    <%= topic['TopicArn'] %>
       --token                        <%= params['Token'] %>
       --authenticate-on-unsubscribe  true
+  SH
+  
+  # Gets the topic information
+  # @see [[JAWS-UG CLI] SNS:#2 通知先の登録 (e-mail) - Qiita]{@link http://qiita.com/tcsh/items/ca81576b0018bfa32cbe}
+  aws <<-SH, binding
+    aws sns get-topic-attributes
+      --topic-arn  <%= topic['TopicArn'] %>
   SH
   
   # Publishes
