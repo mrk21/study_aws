@@ -1,0 +1,15 @@
+require '../util'
+
+desc 'Creates an ElastiCache instance'
+task :create do
+  # Creates a cache cluster for Redis
+  cluster = aws <<-SH, binding
+    aws elasticache create-cache-cluster
+      --cache-cluster-id            test-elasticache
+      --cache-node-type             cache.t1.micro
+      --engine                      redis
+      --engine-version              2.8.23
+      --cache-parameter-group-name  default.redis2.8
+      --num-cache-nodes             1
+  SH
+end
