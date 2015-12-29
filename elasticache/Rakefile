@@ -21,3 +21,23 @@ task :create do
       --security-group-ids          <%= security_gruop_ids.join(' ') %>
   SH
 end
+
+desc 'Access the ElastiCache instance'
+task :access do
+  # Gets an ElastiCache information
+  # @see  $ aws elasticache describe-cache-clusters help
+  cluster = aws <<-SH, binding
+    aws elasticache describe-cache-clusters
+      --cache-cluster-id  test-elasticache
+      --show-cache-node-info
+      --query 'CacheClusters[0]'
+  SH
+  cache_host = cluster['CacheNodes'][0]['Endpoint']['Address']
+  cache_port = cluster['CacheNodes'][0]['Endpoint']['Port']
+  
+  ec2s = create_or_get_instance tag: 'test-elasticache'
+  dns = ec2s[0]['Instances'][0]['PublicDnsName']
+  
+  ssh host: dns, cmd: 'sudo yum --enablerepo=epel -y install redis'
+  ssh host: dns, cmd: "echo 'keys *' | redis-cli -h #{cache_host} -p #{cache_port}"
+end
