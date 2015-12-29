@@ -2,14 +2,22 @@ require '../util'
 
 desc 'Creates an ElastiCache instance'
 task :create do
+  security_gruop_ids = aws <<-SH
+    aws ec2 describe-security-groups
+      --filters  'Name=tag-key,Values=Name'
+                 'Name=tag-value,Values=default'
+      --query    'SecurityGroups[*].GroupId'
+  SH
+  
   # Creates a cache cluster for Redis
-  cluster = aws <<-SH, binding
+  aws <<-SH, binding
     aws elasticache create-cache-cluster
       --cache-cluster-id            test-elasticache
       --cache-node-type             cache.t1.micro
       --engine                      redis
       --engine-version              2.8.23
-      --cache-parameter-group-name  default.redis2.8
       --num-cache-nodes             1
+      --cache-parameter-group-name  default.redis2.8
+      --security-group-ids          <%= security_gruop_ids.join(' ') %>
   SH
 end
