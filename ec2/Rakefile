@@ -11,7 +11,7 @@ namespace :sdk do
       min_count: 1,
       max_count: 1,
       security_groups: ['default'],
-      instance_type: 't1.micro',
+      instance_type: 't2.micro',
       disable_api_termination: false,
     )
   end
@@ -32,7 +32,7 @@ task :create do
   result = aws <<-SH
     aws ec2 run-instances
       --image-id         ami-0d13700c <%# Amazon Linux %>
-      --instance-type    t1.micro
+      --instance-type    t2.micro
       --security-groups  default
       --key-name         default
   SH

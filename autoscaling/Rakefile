@@ -76,7 +76,7 @@ task :create do
       --launch-configuration-name  test-autoscaling-configuration
       --image-id                   <%= images[0]['ImageId'] %>
       --security-groups            <%= security_gruop_ids.join(' ') %>
-      --instance-type              t1.micro
+      --instance-type              t2.micro
   SH
   
   # Creates an auto scaling group

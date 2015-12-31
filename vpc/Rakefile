@@ -86,7 +86,7 @@ task :create do
   ec2 = aws <<-SH, binding
     aws ec2 run-instances
       --image-id            ami-0d13700c <%# Amazon Linux %>
-      --instance-type       t1.micro
+      --instance-type       t2.micro
       --key-name            default
       --security-group-ids  <%= security_group['GroupId'] %>
       --subnet-id           <%= subnet['Subnet']['SubnetId'] %>

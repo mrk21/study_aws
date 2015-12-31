@@ -47,7 +47,7 @@ def create_instance(options = {})
     ec2 = aws <<-SH, binding
       aws ec2 run-instances
         --image-id         ami-0d13700c <%# Amazon Linux %>
-        --instance-type    t1.micro
+        --instance-type    t2.micro
         --security-groups  default
         --key-name         default
     SH
