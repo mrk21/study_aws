@@ -85,7 +85,7 @@ task :create do
   # @see [aws-cli で使って覚える VPC の作り方と EC2 インスタンスの作り方 - ようへいの日々精進XP]{@link http://inokara.hateblo.jp/entry/2014/03/01/184704}
   ec2 = aws <<-SH, binding
     aws ec2 run-instances
-      --image-id            ami-0d13700c <%# Amazon Linux %>
+      --image-id            ami-383c1956 <%# Amazon Linux %>
       --instance-type       t2.micro
       --key-name            default
       --security-group-ids  <%= security_group['GroupId'] %>

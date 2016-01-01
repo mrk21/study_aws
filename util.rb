@@ -46,7 +46,7 @@ def create_instance(options = {})
   ids = options[:n].times.map do
     ec2 = aws <<-SH, binding
       aws ec2 run-instances
-        --image-id         ami-0d13700c <%# Amazon Linux %>
+        --image-id         ami-383c1956 <%# Amazon Linux %>
         --instance-type    t2.micro
         --security-groups  default
         --key-name         default

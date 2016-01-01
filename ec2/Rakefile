@@ -7,7 +7,7 @@ namespace :sdk do
   desc 'Creates EC2 instance'
   task :create do
     ec2.run_instances(
-      image_id: 'ami-0d13700c', # Amazon Linux
+      image_id: 'ami-383c1956', # Amazon Linux
       min_count: 1,
       max_count: 1,
       security_groups: ['default'],
@@ -31,7 +31,7 @@ task :create do
   # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.37-39
   result = aws <<-SH
     aws ec2 run-instances
-      --image-id         ami-0d13700c <%# Amazon Linux %>
+      --image-id         ami-383c1956 <%# Amazon Linux %>
       --instance-type    t2.micro
       --security-groups  default
       --key-name         default

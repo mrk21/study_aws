@@ -39,7 +39,7 @@ desc 'Attaches IAM instance profile'
 task :attach_ec2 do
   ec2 = aws <<-SH, binding
     aws ec2 run-instances
-      --image-id              ami-0d13700c <%# Amazon Linux %>
+      --image-id              ami-383c1956 <%# Amazon Linux %>
       --instance-type         t2.micro
       --key-name              default
       --iam-instance-profile  Name=test-role

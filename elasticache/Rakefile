@@ -9,15 +9,43 @@ task :create do
       --query    'SecurityGroups[*].GroupId'
   SH
   
+  # Creates a cache parameter groups
+  # @see [パラメータとパラメータグループ - Amazon ElastiCache]{@link https://docs.aws.amazon.com/ja_jp/AmazonElastiCache/latest/UserGuide/ParameterGroups.html}
+  # @see $ aws elasticache create-cache-parameter-group help
+  aws <<-SH, binding
+    aws elasticache create-cache-parameter-group
+      --cache-parameter-group-name    test-elasticache
+      --cache-parameter-group-family  redis2.8
+      --description                   'test elasticache'
+  SH
+  
+  # Sets the parameters
+  # @see $ aws elasticache modify-cache-parameter-group help
+  aws <<-SH, binding
+    aws elasticache modify-cache-parameter-group
+      --cache-parameter-group-name  test-elasticache
+      --parameter-name-values
+        'ParameterName=hash-max-ziplist-entries,ParameterValue=1024'
+        'ParameterName=hash-max-ziplist-value,ParameterValue=124'
+  SH
+  
+  # Displays the parameters
+  # @see $ aws elasticache describe-cache-parameters help
+  aws <<-SH, binding
+    aws elasticache describe-cache-parameters
+      --cache-parameter-group-name  test-elasticache
+  SH
+  
   # Creates a cache cluster for Redis
+  # @see $ aws elasticache create-cache-cluster help
   aws <<-SH, binding
     aws elasticache create-cache-cluster
       --cache-cluster-id            test-elasticache
-      --cache-node-type             cache.t1.micro
+      --cache-node-type             cache.t2.micro
       --engine                      redis
       --engine-version              2.8.23
       --num-cache-nodes             1
-      --cache-parameter-group-name  default.redis2.8
+      --cache-parameter-group-name  test-elasticache
       --security-group-ids          <%= security_gruop_ids.join(' ') %>
   SH
 end
