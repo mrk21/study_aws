@@ -25,6 +25,22 @@ task :create do
       --db-parameter-group-family  MySQL5.6
   SH
   
+  # Sets the parameters
+  # @see $ aws rds modify-db-parameter-group help
+  aws <<-SH, binding
+    aws rds modify-db-parameter-group
+      --db-parameter-group-name  test-param-mysql56
+      --parameters
+        'ParameterName=character_set_client,ParameterValue=utf8'
+  SH
+  
+  # Displays the parameters
+  # @see $ aws rds describe-db-parameters help
+  aws <<-SH, binding
+    aws rds describe-db-parameters
+      --db-parameter-group-name  test-param-mysql56
+  SH
+  
   # Creates a DB option group
   # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.195-196
   aws <<-SH, binding
