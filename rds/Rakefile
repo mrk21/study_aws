@@ -51,7 +51,14 @@ task :create do
       --major-engine-version      5.6
   SH
   
-  # Creates a DB option group
+  aws <<-SH, binding
+    aws add-option-to-option-group
+      --option-group-name  test-mysql56-option
+      --options
+        OptionSettings=[{Name=BACKLOG_QUEUE_LIMIT,Value=2048}]
+  SH
+  
+  # Creates a DB subnet group
   # @see 『Amazon Web Services実践入門』初版 技術評論社 pp.195-196
   aws <<-SH, binding
     aws rds create-db-subnet-group
