@@ -51,11 +51,13 @@ task :create do
       --major-engine-version      5.6
   SH
   
+  # Adds a DB option
+  # @see $ aws rds add-option-to-option-group help
   aws <<-SH, binding
-    aws add-option-to-option-group
+    aws rds add-option-to-option-group
       --option-group-name  test-mysql56-option
       --options
-        OptionSettings=[{Name=BACKLOG_QUEUE_LIMIT,Value=2048}]
+        'OptionName=MEMCACHED,VpcSecurityGroupMemberships=[<%= security_gruop_ids.join(',') %>],OptionSettings=[{Name=BACKLOG_QUEUE_LIMIT,Value=2048}]'
   SH
   
   # Creates a DB subnet group
