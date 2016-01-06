@@ -18,13 +18,13 @@
   },
   
   "Conditions": {
-    "Truthy": {"Fn::Equals": ["1","1"]}
+    "IsTokyoRegion": {"Fn::Equals": [{"Ref": "region"}, "ap-northeast-1"]}
   },
   
   "Resources": {
     "InstanceSecurityGroup": {
       "Type": "AWS::EC2::SecurityGroup",
-      "Condition": "Truthy",
+      "Condition": "IsTokyoRegion",
       
       "Properties": {
         "GroupDescription": "Allow http to client host",
